@@ -2,7 +2,7 @@ name: Test Node App
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
 
 jobs:
   test:
