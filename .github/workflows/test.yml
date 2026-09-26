@@ -11,8 +11,8 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: simple-node-demo
   ECR_REGISTRY: 241765568283.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: simple-node-demo
   ECS_CLUSTER: simple-node-demo-cluster
   ECS_SERVICE: simple-node-demo-service
   ECS_TASK_DEFINITION: simple-node-demo
@@ -24,49 +24,49 @@ jobs:
 
     steps:
 
-      # 1. Checkout source code
+      # Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # 2. Setup Node.js
+      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      # 3. Run tests
+      # Run application tests
       - name: Run tests
         run: npm test
 
-      # 4. Configure AWS using GitHub OIDC
+      # Configure AWS using GitHub OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::241765568283:role/GitHubActions-ECR-simple-node-demo
           aws-region: ${{ env.AWS_REGION }}
 
-      # 5. Verify AWS identity
+      # Verify AWS identity
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      # 6. Login to Amazon ECR
+      # Login to ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 7. Build Docker image using Git commit SHA
+      # Build Docker image
       - name: Build Docker image
         run: |
           docker build \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
             .
 
-      # 8. Push image to ECR
+      # Push Docker image to ECR
       - name: Push Docker image
         run: |
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      # 9. Get current ECS task definition
+      # Download current ECS task definition
       - name: Get current ECS task definition
         run: |
           aws ecs describe-task-definition \
@@ -74,7 +74,7 @@ jobs:
             --query taskDefinition \
             --output json > task-definition.json
 
-      # 10. Replace the container image with the new image
+      # Update container image in task definition
       - name: Update ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -83,11 +83,11 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      # 11. Deploy new task definition to ECS
+      # Deploy the new task definition to ECS
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
           wait-for-service-stability: true
