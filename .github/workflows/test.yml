@@ -4,45 +4,62 @@ on:
   push:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test-and-docker:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download repository code
+
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # 2. Install Node.js
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      # 3. Run application test
+      # 3. Run application tests
       - name: Run tests
         run: npm test
 
-      # 4. Build Docker image
+      # 4. Configure AWS credentials using GitHub OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::241765568283:role/GitHubActions-ECR-simple-node-demo
+          aws-region: us-east-1
+
+      # 5. Verify AWS identity
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      # 6. Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 7. Build Docker image
       - name: Build Docker image
         run: docker build -t simple-node-demo .
 
-      # 5. Show Docker image
+      # 8. Tag Docker image
+      - name: Tag Docker image
+        run: |
+          docker tag simple-node-demo \
+            241765568283.dkr.ecr.us-east-1.amazonaws.com/simple-node-demo:latest
+
+      # 9. Push Docker image to ECR
+      - name: Push Docker image to ECR
+        run: |
+          docker push \
+            241765568283.dkr.ecr.us-east-1.amazonaws.com/simple-node-demo:latest
+
+      # 10. Show Docker images
       - name: Show Docker images
         run: docker images
-
-      # 6. Run Docker container
-      - name: Run Docker container
-        run: docker run -d --name simple-node-demo -p 3000:3000 simple-node-demo
-
-      # 7. Check running container
-      - name: Check Docker container
-        run: docker ps
-
-      # 8. Show container logs
-      - name: Show container logs
-        run: docker logs simple-node-demo
-
-      # 9. Stop container
-      - name: Stop Docker container
-        run: docker stop simple-node-demo
