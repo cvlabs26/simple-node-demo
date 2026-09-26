@@ -2,7 +2,7 @@ name: Test Node App
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
 
 jobs:
   test:
@@ -15,7 +15,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Check that app.js has valid JavaScript
         run: npm test
