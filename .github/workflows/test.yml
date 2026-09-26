@@ -1,21 +1,48 @@
-name: Test Node App
+name: Test and Build Docker
 
 on:
   push:
     branches: [main]
 
 jobs:
-  test:
+  test-and-docker:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download repository code
+      # 1. Download repository code
+      - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install Node.js
+      # 2. Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      - name: Check that app.js has valid JavaScript
+      # 3. Run application test
+      - name: Run tests
         run: npm test
+
+      # 4. Build Docker image
+      - name: Build Docker image
+        run: docker build -t simple-node-demo .
+
+      # 5. Show Docker image
+      - name: Show Docker images
+        run: docker images
+
+      # 6. Run Docker container
+      - name: Run Docker container
+        run: docker run -d --name simple-node-demo -p 3000:3000 simple-node-demo
+
+      # 7. Check running container
+      - name: Check Docker container
+        run: docker ps
+
+      # 8. Show container logs
+      - name: Show container logs
+        run: docker logs simple-node-demo
+
+      # 9. Stop container
+      - name: Stop Docker container
+        run: docker stop simple-node-demo
